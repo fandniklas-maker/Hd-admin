@@ -1,60 +1,171 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Trixo Hub",
-    LoadingTitle = "Trixo Hub",
-    LoadingSubtitle = "Key System",
+    Name = "Trixo Executor Admin Menu",
+    LoadingTitle = "Loading Trixo Executor Admin Menu",
+    LoadingSubtitle = "by Trixo",
     ConfigurationSaving = {
-        Enabled = false
+        Enabled = true,
+        FolderName = nil,
+        FileName = "TrixoExecutorConfig"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "",
+        RememberJoins = false
     },
     KeySystem = true,
     KeySettings = {
-        Title = "Trixo Key",
-        Subtitle = "Enter Key",
-        Note = "Key: Trixo",
-        SaveKey = false,
+        Title = "Trixo Executor Admin Menu",
+        Subtitle = "Key System",
+        Note = "Enter the key to get access",
+        FileName = "TrixoKey",
+        SaveKey = true,
         GrabKeyFromSite = false,
-        Key = {"Trixo"}
+        Key = "Trixo"
     }
 })
 
-local Tab = Window:CreateTab("Main")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
 
--- Speed
-Tab:CreateSlider({
-    Name = "WalkSpeed",
-    Range = {16, 100},
-    Increment = 1,
-    CurrentValue = 16,
-    Callback = function(Value)
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
-    end,
-})
+-- HD Admin setup
+local function giveHDAdmin()
+    if not _G.HDAdminLoaded then
+        _G.HDAdminLoaded = true
+        local HDAdmin = loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+        HDAdmin:Init()
+    end
+end
 
--- Infinite Jump
-local InfiniteJump = false
+-- Fly function
+local flying = false
+local flySpeed = 50
+local flyBodyGyro, flyBodyVelocity
 
-Tab:CreateToggle({
-    Name = "Infinite Jump",
-    CurrentValue = false,
-    Callback = function(Value)
-        InfiniteJump = Value
-    end,
-})
+local function startFly()
+    if flying then return end
+    flying = true
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
 
-game:GetService("UserInputService").JumpRequest:Connect(function()
-    if InfiniteJump then
-        local Humanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if Humanoid then
-            Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    flyBodyGyro = Instance.new("BodyGyro", hrp)
+    flyBodyGyro.P = 9e4
+    flyBodyGyro.MaxTorque = Vector3.new(9e4, 9e4, 9e4)
+    flyBodyGyro.CFrame = hrp.CFrame
+
+    flyBodyVelocity = Instance.new("BodyVelocity", hrp)
+    flyBodyVelocity.Velocity = Vector3.new(0,0,0)
+    flyBodyVelocity.MaxForce = Vector3.new(9e4, 9e4, 9e4)
+
+    local userInputService = game:GetService("UserInputService")
+
+    spawn(function()
+        while flying do
+            wait()
+            local moveDirection = Vector3.new(0,0,0)
+            if userInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveDirection = moveDirection + workspace.CurrentCamera.CFrame.LookVector
+            end
+            if userInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveDirection = moveDirection - workspace.CurrentCamera.CFrame.LookVector
+            end
+            if userInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveDirection = moveDirection - workspace.CurrentCamera.CFrame.RightVector
+            end
+            if userInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveDirection = moveDirection + workspace.CurrentCamera.CFrame.RightVector
+            end
+            flyBodyVelocity.Velocity = moveDirection.Unit * flySpeed + Vector3.new(0,0,0)
+            flyBodyGyro.CFrame = workspace.CurrentCamera.CFrame
+        end
+        if flyBodyGyro then flyBodyGyro:Destroy() end
+        if flyBodyVelocity then flyBodyVelocity:Destroy() end
+    end)
+end
+
+local function stopFly()
+    flying = false
+end
+
+-- Infinity Jump
+local UserInputService = game:GetService("UserInputService")
+local canInfinityJump = false
+
+UserInputService.JumpRequest:Connect(function()
+    if canInfinityJump then
+        if humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         end
     end
 end)
 
--- Fly
-Tab:CreateButton({
-    Name = "Fly",
+-- Speed
+local speedValue = 16
+local speedEnabled = false
+
+local function setSpeed(val)
+    if humanoid then
+        humanoid.WalkSpeed = val
+    end
+end
+
+-- Buttons
+
+Window:CreateButton({
+    Name = "Fly (Toggle)",
     Callback = function()
-        print("Fly aktiviert (eigene Fly-Funktion hier einfügen)")
-    end,
+        if flying then
+            stopFly()
+        else
+            startFly()
+        end
+    end
+})
+
+Window:CreateToggle({
+    Name = "Infinity Jump",
+    CurrentValue = false,
+    Flag = "InfinityJumpToggle",
+    Callback = function(value)
+        canInfinityJump = value
+    end
+})
+
+Window:CreateSlider({
+    Name = "Speed",
+    Min = 16,
+    Max = 250,
+    Default = 16,
+    Color = Color3.fromRGB(255,255,255),
+    Increment = 1,
+    ValueName = "WalkSpeed",
+    Callback = function(value)
+        speedValue = value
+        if speedEnabled then
+            setSpeed(speedValue)
+        end
+    end
+})
+
+Window:CreateToggle({
+    Name = "Speed Enable",
+    CurrentValue = false,
+    Flag = "SpeedToggle",
+    Callback = function(value)
+        speedEnabled = value
+        if speedEnabled then
+            setSpeed(speedValue)
+        else
+            setSpeed(16)
+        end
+    end
+})
+
+Window:CreateButton({
+    Name = "Give HD Admin",
+    Callback = function()
+        giveHDAdmin()
+    end
 })
