@@ -1,0 +1,61 @@
+-- Admin script with key access for Roblox Delta Executor
+
+-- Define the correct key
+local correctKey = "Trixo"
+
+-- Function to check key input
+local function checkKey(inputKey)
+    return inputKey == correctKey
+end
+
+-- Prompt user to enter key (this part would be manual input before executing)
+local enteredKey = "subscribe"  -- Replace this with your actual key input method if available
+
+if not checkKey(enteredKey) then
+    print("Invalid key! Access denied.")
+    return
+end
+
+print("Access granted. Admin commands enabled.")
+
+local Players = game:GetService("Players")
+
+local admins = {
+    [game.Players.LocalPlayer.UserId] = true -- give admin to the executor user automatically
+}
+
+local function isAdmin(userId)
+    return admins[userId] ~= nil
+end
+
+-- Simple admin command via chat (only for the executor user)
+local function onChatted(player, message)
+    if not isAdmin(player.UserId) then return end
+
+    local command, arg = message:match("^(%S+)%s*(.*)$")
+    if command == ":kill" and arg then
+        local targetPlayer = Players:FindFirstChild(arg)
+        if targetPlayer and targetPlayer.Character then
+            targetPlayer.Character:BreakJoints()
+            print("Killed player: " .. arg)
+        else
+            print("Player not found or no character.")
+        end
+    elseif command == ":tp" and arg then
+        local targetPlayer = Players:FindFirstChild(arg)
+        if targetPlayer and targetPlayer.Character and player.Character then
+            player.Character:SetPrimaryPartCFrame(targetPlayer.Character.PrimaryPart.CFrame)
+            print("Teleported to player: " .. arg)
+        else
+            print("Player not found or no character.")
+        end
+    elseif command == ":admin" then
+        print("Available commands: :kill [player], :tp [player]")
+    end
+end
+
+Players.LocalPlayer.Chatted:Connect(function(message)
+    onChatted(Players.LocalPlayer, message)
+end)
+
+print("Admin script loaded—use chat commands with prefix ':' if you have the key.")
